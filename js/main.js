@@ -256,22 +256,48 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* ----------------------------------------------------------
-     12. CONTACT FORM SUBMIT
+     12. CONTACT FORM SUBMIT — Redirect to WhatsApp
   ---------------------------------------------------------- */
   const bookingForm = document.querySelector('.booking-form');
   if (bookingForm) {
     bookingForm.addEventListener('submit', (e) => {
       e.preventDefault();
+      
+      const name = document.getElementById('name').value;
+      const phone = document.getElementById('phone').value;
+      const email = document.getElementById('email').value || 'Not provided';
+      const serviceSelect = document.getElementById('service');
+      const service = serviceSelect.options[serviceSelect.selectedIndex].text;
+      const date = document.getElementById('date').value;
+      const timeSelect = document.getElementById('time');
+      const time = timeSelect.options[timeSelect.selectedIndex].text;
+      const message = document.getElementById('message').value || 'None';
+      
       const btn = bookingForm.querySelector('.form-submit');
       const original = btn.textContent;
-      btn.textContent = 'Sending...';
+      btn.textContent = 'Opening WhatsApp...';
       btn.disabled = true;
       btn.style.letterSpacing = '0.15em';
 
-      // Replace this timeout with an actual fetch() to your backend
+      // Compile message for WhatsApp
+      const waText = `Hi Praaya,\n\nI would like to start a custom order / book a design consultation:\n\n` +
+                     `• *Name:* ${name}\n` +
+                     `• *Phone:* ${phone}\n` +
+                     `• *Email:* ${email}\n` +
+                     `• *Speciality:* ${service}\n` +
+                     `• *Preferred Date:* ${date}\n` +
+                     `• *Preferred Time:* ${time}\n` +
+                     `• *Notes/Details:* ${message}`;
+      
+      const waUrl = `https://wa.me/919539533993?text=${encodeURIComponent(waText)}`;
+      
       setTimeout(() => {
-        btn.textContent = 'Request Received!';
+        btn.textContent = 'Redirected!';
         btn.style.background = 'var(--burgundy)';
+        
+        // Open WhatsApp in a new window/tab
+        window.open(waUrl, '_blank');
+        
         setTimeout(() => {
           btn.textContent = original;
           btn.style.background = '';
@@ -279,7 +305,7 @@ document.addEventListener('DOMContentLoaded', () => {
           btn.disabled = false;
           bookingForm.reset();
         }, 3500);
-      }, 1500);
+      }, 1200);
     });
   }
 
@@ -403,5 +429,103 @@ document.addEventListener('DOMContentLoaded', () => {
   }, { threshold: 0.1, rootMargin: '-40px 0px' });
 
   document.querySelectorAll('.stagger-parent').forEach(el => staggerObserver.observe(el));
+
+  /* ----------------------------------------------------------
+     15. HERO INTERACTIVE FLOATING ELEMENTS PARALLAX
+  ---------------------------------------------------------- */
+  const heroSection = document.querySelector('.hero');
+  const floatingShapes = document.querySelectorAll('.floating-shape');
+  
+  if (heroSection && floatingShapes.length > 0) {
+    let mouseX = 0;
+    let mouseY = 0;
+    let currentX = 0;
+    let currentY = 0;
+    
+    // Track mouse position relative to center of the hero section
+    heroSection.addEventListener('mousemove', (e) => {
+      const rect = heroSection.getBoundingClientRect();
+      const centerX = rect.width / 2;
+      const centerY = rect.height / 2;
+      
+      // Calculate offset from center (-centerX to +centerX, -centerY to +centerY)
+      mouseX = e.clientX - rect.left - centerX;
+      mouseY = e.clientY - rect.top - centerY;
+    });
+    
+    // Smooth easing/interpolation loop for floating shape transitions
+    function animateShapes() {
+      // Linear interpolation (lerp) for smooth easing
+      currentX += (mouseX - currentX) * 0.08;
+      currentY += (mouseY - currentY) * 0.08;
+      
+      floatingShapes.forEach((shape) => {
+        const factor = parseFloat(shape.getAttribute('data-speed')) || 0.05;
+        const translateX = currentX * factor;
+        const translateY = currentY * factor;
+        
+        shape.style.transform = `translate3d(${translateX}px, ${translateY}px, 0)`;
+      });
+      
+      requestAnimationFrame(animateShapes);
+    }
+    
+    // Start animation loop
+    animateShapes();
+    
+    // Add reset on mouse leave
+    heroSection.addEventListener('mouseleave', () => {
+      mouseX = 0;
+      mouseY = 0;
+    });
+  }
+
+  /* ----------------------------------------------------------
+     11. MOBILE ACTIVE STATES ON SCROLL (Observer for Cards & Panels)
+  ---------------------------------------------------------- */
+  let scrollObserver = null;
+
+  function initMobileScrollActiveStates() {
+    // Only run on mobile/tablet viewports (max-width: 991px)
+    if (window.innerWidth > 991) {
+      if (scrollObserver) {
+        scrollObserver.disconnect();
+        scrollObserver = null;
+      }
+      // Remove any leftover active classes when switching to desktop
+      document.querySelectorAll('.service-card, .hair-panel, .ge-item').forEach(el => {
+        el.classList.remove('active');
+      });
+      return;
+    }
+
+    const scrollElements = document.querySelectorAll('.service-card, .hair-panel, .ge-item');
+    if (scrollElements.length === 0) return;
+
+    if (scrollObserver) {
+      scrollObserver.disconnect();
+    }
+
+    // IntersectionObserver targeting elements centered in viewport
+    scrollObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('active');
+        } else {
+          entry.target.classList.remove('active');
+        }
+      });
+    }, {
+      root: null,
+      rootMargin: '-25% 0px -25% 0px', // Center region of the screen
+      threshold: 0.2
+    });
+
+    scrollElements.forEach(el => scrollObserver.observe(el));
+  }
+
+  // Init on load and handle resize events
+  initMobileScrollActiveStates();
+  window.addEventListener('resize', initMobileScrollActiveStates);
 
 });
